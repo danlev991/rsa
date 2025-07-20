@@ -61,6 +61,52 @@ public:
         block_size = (key_size / 8) - 11; // Leave room for padding
         encrypted_block_size = (key_size + 7) / 8; // Size of encrypted block in bytes
     }
+    // Import constructor
+    RSA(const std::vector<unsigned char>& n_bytes,
+        const std::vector<unsigned char>& e_bytes,
+        const std::vector<unsigned char>& d_bytes = {},
+        size_t bits = 2048) : key_size(bits) {
+        mpz_init(n);
+        mpz_init(e);
+        mpz_init(d);
+        gmp_randinit_default(rng_state);
+        gmp_randseed_ui(rng_state, std::random_device{}());
+        // Import n, e, d
+        mpz_import(n, n_bytes.size(), 1, 1, 1, 0, n_bytes.data());
+        mpz_import(e, e_bytes.size(), 1, 1, 1, 0, e_bytes.data());
+        if (!d_bytes.empty())
+            mpz_import(d, d_bytes.size(), 1, 1, 1, 0, d_bytes.data());
+        // Calculate block sizes
+        block_size = (key_size / 8) - 11;
+        encrypted_block_size = (key_size + 7) / 8;
+    }
+    // Export n as bytes
+    std::vector<unsigned char> export_n() const {
+        size_t count = (mpz_sizeinbase(n, 2) + 7) / 8;
+        std::vector<unsigned char> buf(count);
+        size_t actual;
+        mpz_export(buf.data(), &actual, 1, 1, 1, 0, n);
+        buf.resize(actual);
+        return buf;
+    }
+    // Export e as bytes
+    std::vector<unsigned char> export_e() const {
+        size_t count = (mpz_sizeinbase(e, 2) + 7) / 8;
+        std::vector<unsigned char> buf(count);
+        size_t actual;
+        mpz_export(buf.data(), &actual, 1, 1, 1, 0, e);
+        buf.resize(actual);
+        return buf;
+    }
+    // Export d as bytes
+    std::vector<unsigned char> export_d() const {
+        size_t count = (mpz_sizeinbase(d, 2) + 7) / 8;
+        std::vector<unsigned char> buf(count);
+        size_t actual;
+        mpz_export(buf.data(), &actual, 1, 1, 1, 0, d);
+        buf.resize(actual);
+        return buf;
+    }
     
     ~RSA() {
         mpz_clear(n);
